@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generador de Presupuesto · KALON</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <!--
+    jsPDF desde CDN — igual que en Olivaloló.
+    Un CDN es un servidor externo que nos sirve la librería sin que tengamos que descargarla.
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- CABECERA -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo-area">
+        <span class="logo-icon">✦</span>
+        <span class="logo-text">KALON</span>
+      </div>
+      <p class="header-sub">Generador de presupuesto · Maquillaje profesional</p>
+    </div>
+  </header>
+
+  <!-- BARRA DE PROGRESO -->
+  <div class="progress-bar-wrap">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="main-layout">
+
+    <!-- FORMULARIO (izquierda) -->
+    <section class="form-section">
+      <form id="budgetForm" novalidate>
+
+        <!-- PASO 1: Tipo de sesión -->
+        <fieldset class="step" data-step="1">
+          <legend class="step-label"><span class="step-num">01</span> Tipo de sesión</legend>
+          <div class="radio-grid">
+
+            <label class="radio-card">
+              <input type="radio" name="tipoSesion" value="glitter_bar" required />
+              <span class="card-icon">✨</span>
+              <span class="card-title">Servicio Glitter Bar</span>
+              <span class="card-precio">desde 160 €</span>
+            </label>
+
+            <label class="radio-card">
+              <input type="radio" name="tipoSesion" value="maquillaje_neon" />
+              <span class="card-icon">💡</span>
+              <span class="card-title">Maquillaje Neón</span>
+              <span class="card-precio">desde 160 €</span>
+            </label>
+
+            <label class="radio-card">
+              <input type="radio" name="tipoSesion" value="maquillaje_novia" />
+              <span class="card-icon">💍</span>
+              <span class="card-title">Servicio Maquillaje Novia</span>
+              <span class="card-precio">30 € / hora</span>
+            </label>
+
+          </div>
+
+          <!--
+            Aviso informativo que aparece cuando se selecciona el servicio Novia.
+            Por defecto está oculto (display:none en CSS).
+            El JS lo muestra u oculta según la selección.
+          -->
+          <div class="info-banner" id="infoBannerNovia">
+            💍 El servicio de Maquillaje Novia se factura a <strong>30 € por hora</strong>.
+            El precio total se calcula automáticamente según la duración que selecciones.
+          </div>
+
+          <div class="info-banner" id="infoBannerGlitter">
+            ✨ Glitter Bar y Maquillaje Neón tienen <strong>precio fijo por tramo de duración</strong>,
+            independientemente de las horas exactas dentro de cada tramo.
+          </div>
+
+        </fieldset>
+
+        <!-- PASO 2: Duración -->
+        <!--
+          Las opciones de este select cambian dinámicamente con JS
+          según el tipo de sesión seleccionado arriba.
+          Los precios son distintos para Novia (30€/h) que para Glitter/Neón (precio fijo).
+        -->
+        <fieldset class="step" data-step="2">
+          <legend class="step-label"><span class="step-num">02</span> Duración de la sesión</legend>
+          <div class="select-wrap">
+            <select name="duracion" id="duracion">
+              <option value="">— Primero selecciona el tipo de sesión —</option>
+            </select>
+            <span class="select-arrow">▾</span>
+          </div>
+        </fieldset>
+
+        <!-- PASO 3: Desplazamiento (igual que Olivaloló) -->
+        <fieldset class="step" data-step="3">
+          <legend class="step-label"><span class="step-num">03</span> Desplazamiento</legend>
+          <div class="radio-list">
+
+            <label class="radio-row">
+              <input type="radio" name="desplazamiento" value="sin" data-precio="0" checked />
+              <span class="radio-dot"></span>
+              <span class="radio-label">Sin desplazamiento</span>
+              <span class="radio-price">0 €</span>
+            </label>
+
+            <label class="radio-row">
+              <input type="radio" name="desplazamiento" value="local" data-precio="25" />
+              <span class="radio-dot"></span>
+              <span class="radio-label">Local (≤ 20 km)</span>
+              <span class="radio-price">+25 €</span>
+            </label>
+
+            <label class="radio-row">
+              <input type="radio" name="desplazamiento" value="provincial" data-precio="60" />
+              <span class="radio-dot"></span>
+              <span class="radio-label">Provincial</span>
+              <span class="radio-price">+60 €</span>
+            </label>
+
+            <label class="radio-row">
+              <input type="radio" name="desplazamiento" value="nacional" data-precio="150" />
+              <span class="radio-dot"></span>
+              <span class="radio-label">Nacional</span>
+              <span class="radio-price">+150 €</span>
+            </label>
+
+          </div>
+        </fieldset>
+
+        <!-- PASO 4: Extras opcionales -->
+        <!--
+          Algunos extras tienen cantidad variable (horas, personas).
+          Para esos usamos un input tipo number que permite introducir cuántas horas
+          o cuántas personas extra se necesitan, y el precio se multiplica.
+        -->
+        <fieldset class="step" data-step="4">
+          <legend class="step-label"><span class="step-num">04</span> Extras opcionales</legend>
+          <div class="check-list">
+
+            <!-- Extra fijo: Prueba de maquillaje -->
+            <label class="check-card">
+              <input type="checkbox" name="extras" value="prueba_maquillaje" data-precio="30" data-tipo="fijo" />
+              <span class="check-box"></span>
+              <span class="check-info">
+                <span class="check-title">Prueba de maquillaje</span>
+                <span class="check-sub">+30 €</span>
+              </span>
+            </label>
+
+            <!--
+              Extra variable: Servicio de Acompañamiento (30€/hora).
+              El checkbox activa el bloque. El input number permite indicar cuántas horas.
+              data-tipo="por_hora" y data-precio="30" le dicen al JS cómo calcularlo.
+            -->
+            <label class="check-card check-card--cantidad">
+              <input type="checkbox" name="extras" value="acompanamiento" data-precio="30" data-tipo="por_hora" id="chkAcompanamiento" />
+              <span class="check-box"></span>
+              <span class="check-info">
+                <span class="check-title">Servicio de Acompañamiento</span>
+                <span class="check-sub">30 € por hora</span>
+              </span>
+              <!-- Este bloque de cantidad solo aparece cuando el checkbox está marcado -->
+              <div class="cantidad-wrap" id="wrapAcompanamiento">
+                <label class="cantidad-label" for="horasAcompanamiento">Horas:</label>
+                <input type="number" id="horasAcompanamiento" name="horasAcompanamiento"
+                       min="1" max="24" value="1" class="cantidad-input" />
+              </div>
+            </label>
+
+            <!-- Extra fijo: Peinado Básico -->
+            <label class="check-card">
+              <input type="checkbox" name="extras" value="peinado_basico" data-precio="15" data-tipo="fijo" />
+              <span class="check-box"></span>
+              <span class="check-info">
+                <span class="check-title">Peinado básico</span>
+                <span class="check-sub">+15 €</span>
+              </span>
+            </label>
+
+            <!-- Extra fijo: Peinado Elaborado -->
+            <label class="check-card">
+              <input type="checkbox" name="extras" value="peinado_elaborado" data-precio="25" data-tipo="fijo" />
+              <span class="check-box"></span>
+              <span class="check-info">
+                <span class="check-title">Peinado elaborado</span>
+                <span class="check-sub">+25 €</span>
+              </span>
+            </label>
+
+            <!--
+              Extra variable: Persona Extra a maquillar (30€/persona).
+              Igual que Acompañamiento pero con número de personas.
+            -->
+            <label class="check-card check-card--cantidad">
+              <input type="checkbox" name="extras" value="persona_extra" data-precio="30" data-tipo="por_persona" id="chkPersonaExtra" />
+              <span class="check-box"></span>
+              <span class="check-info">
+                <span class="check-title">Persona extra (a maquillar)</span>
+                <span class="check-sub">30 € por persona</span>
+              </span>
+              <div class="cantidad-wrap" id="wrapPersonaExtra">
+                <label class="cantidad-label" for="personasExtra">Personas:</label>
+                <input type="number" id="personasExtra" name="personasExtra"
+                       min="1" max="20" value="1" class="cantidad-input" />
+              </div>
+            </label>
+
+          </div>
+        </fieldset>
+
+        <!-- PASO 5: Datos del cliente -->
+        <fieldset class="step" data-step="5">
+          <legend class="step-label"><span class="step-num">05</span> Tus datos (opcional)</legend>
+          <div class="input-group">
+            <label for="clienteNombre">Nombre</label>
+            <input type="text" id="clienteNombre" name="clienteNombre" placeholder="Tu nombre completo" />
+          </div>
+          <div class="input-group">
+            <label for="clienteEmail">Correo electrónico</label>
+            <input type="email" id="clienteEmail" name="clienteEmail" placeholder="correo@ejemplo.com" />
+          </div>
+          <div class="input-group">
+            <label for="clienteTelefono">Teléfono (opcional)</label>
+            <input type="tel" id="clienteTelefono" name="clienteTelefono" placeholder="600 000 000" />
+          </div>
+          <div class="input-group">
+            <label for="fechaEvento">Fecha del evento (opcional)</label>
+            <input type="date" id="fechaEvento" name="fechaEvento" />
+          </div>
+        </fieldset>
+
+        <!-- BOTONES -->
+        <div class="form-actions">
+          <button type="button" id="btnReset" class="btn-secondary">↺ Reiniciar</button>
+          <button type="button" id="btnGenerar" class="btn-primary" disabled>
+            Generar presupuesto en PDF
+          </button>
+        </div>
+
+      </form>
+    </section>
+
+    <!-- PANEL DE RESUMEN (derecha) -->
+    <aside class="summary-panel">
+      <div class="summary-inner">
+        <h2 class="summary-title">Tu presupuesto</h2>
+
+        <div class="summary-body" id="summaryBody">
+          <p class="summary-hint">Selecciona las opciones del formulario y verás aquí el desglose en tiempo real.</p>
+        </div>
+
+        <div class="summary-total-wrap">
+          <span class="summary-total-label">Total estimado</span>
+          <span class="summary-total-amount" id="totalAmount">0 €</span>
+        </div>
+
+        <p class="summary-note">
+          Este presupuesto es orientativo y puede ajustarse tras reunión de proyecto.
+        </p>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- AVISO TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
